@@ -130,7 +130,7 @@ def main(input_f, output_f):
         ('game', PassthroughTransformer(['review__count', 'review__mean'] + sum_and_means_cols)),
         ('user_reviews', GetSizeByColTransformer('user')), 
         ('sum', GetColsSumGroupByCol('user', sum_and_means_cols)),
-        ('mean', GetColsMeanGroupByCol('user', sum_and_means_cols))
+        ('mean', GetColsMeanGroupByCol('user', sum_and_means_cols)),
     ])
 
     pipeline = Pipeline([
@@ -140,6 +140,7 @@ def main(input_f, output_f):
 
     res = pipeline.fit_transform(X, y)
     new_df = pd.DataFrame(res, columns=features.get_feature_names())
+    new_df['rating'] = y
     new_df.to_feather(output_f)
 
 if __name__ == '__main__':
