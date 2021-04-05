@@ -13,11 +13,9 @@ import pandas as pd
 import numpy as np
 import pickle
 import sys
+import argh
 
 # preparing nltk downloads
-
-nltk.download('punkt')
-nltk.download('stopwords')
 
 class Cat2BOW(BaseEstimator, TransformerMixin):
     def __init__(self, col, min_df=0):
@@ -246,10 +244,12 @@ final_df = FeatureUnion([
 ])
 
 
-def main():
+def main(filename):
     print("Starting Now!\n\n\n")
-    
-    df = pd.read_csv('data/games_detailed_info.csv.gz')
+    nltk.download('punkt')
+    nltk.download('stopwords')
+
+    df = pd.read_csv(filename)
 
     new_df = pd.DataFrame(final_df.fit_transform(df), 
                     columns=final_df.get_feature_names())
@@ -269,4 +269,4 @@ def main():
         pickle.dump(final_df, f) 
 
 if __name__ == '__main__':
-    main()
+    argh.dispatch_command(main)
