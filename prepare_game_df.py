@@ -223,33 +223,30 @@ class GameRatingTransformer(BaseEstimator, TransformerMixin):
     def get_feature_names(self):
         return ['count','mean',]
 
-years = (-10000, 1900, 1980, 1990, 2000, 2010, 2015, 21000)
-
-final_df = FeatureUnion([
-    ('', PassthroughTransformer([
-        'id',
-    ])),
-    ('review', GameRatingTransformer()),
-    ('years', GrpupingEncoder(col='yearpublished', groups=years, 
-        first_group_format='Pre-{to}', last_group_format='Post-{from}')),
-    ('min_age', GrpupingEncoder(col='minage', groups=(0, 3, 10, 12, 18, 100), 
-        first_group_format='none', last_group_format='adults')),
-    ('weight', GrpupingEncoder(col='averageweight', groups=np.arange(0, 5, 0.5), 
-        first_group_format='less_than_{to:.2f}', last_group_format='more_than_{from:.2f}', group_name_margin=0.01, 
-        ranges_format='{from:.2f}-{to:.2f}')),
-    ('players', PlayerNumAnalyzer()),
-    ('desc_nlp', DescTokeniser(max_features=100)),
-    ('category', Cat2BOW('boardgamecategory', min_df=0.05)),
-    ('mechanic', Cat2BOW('boardgamemechanic', min_df=0.05)),
-])
-
-
 def main(filename):
     print("Starting Now!\n\n\n")
     nltk.download('punkt')
     nltk.download('stopwords')
 
     df = pd.read_csv(filename)
+
+    years = (-10000, 1900, 1980, 1990, 2000, 2010, 2015, 21000)
+
+    final_df = FeatureUnion([
+        ('', PassthroughTransformer(['id',])),
+        ('review', GameRatingTransformer()),
+        ('years', GrpupingEncoder(col='yearpublished', groups=years, 
+            first_group_format='Pre-{to}', last_group_format='Post-{from}')),
+        ('min_age', GrpupingEncoder(col='minage', groups=(0, 3, 10, 12, 18, 100), 
+            first_group_format='none', last_group_format='adults')),
+        ('weight', GrpupingEncoder(col='averageweight', groups=np.arange(0, 5, 0.5), 
+            first_group_format='less_than_{to:.2f}', last_group_format='more_than_{from:.2f}', group_name_margin=0.01, 
+            ranges_format='{from:.2f}-{to:.2f}')),
+        ('players', PlayerNumAnalyzer()),
+        ('desc_nlp', DescTokeniser(max_features=100)),
+        ('category', Cat2BOW('boardgamecategory', min_df=0.05)),
+        ('mechanic', Cat2BOW('boardgamemechanic', min_df=0.05)),
+    ])
 
     new_df = pd.DataFrame(final_df.fit_transform(df), 
                     columns=final_df.get_feature_names())
@@ -265,7 +262,7 @@ def main(filename):
     print (has_na[has_na > 1])
 
     new_df.to_feather('processed/encoded_games_detailed_info.fethear')
-    with open('game_df_pipline.pickle', 'wb') as f:
+    with open('models/game_df_pipline.pickle', 'wb') as f:
         pickle.dump(final_df, f) 
 
 if __name__ == '__main__':
