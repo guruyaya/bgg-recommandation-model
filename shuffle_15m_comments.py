@@ -23,5 +23,5 @@ max_val = num_reviews * 8 // 10
 print ("Splitting")
 df.iloc[:max_train].to_feather('processed/bgg-reviews_train.feather')
 df.iloc[max_train:max_val].reset_index().to_feather('processed/bgg-reviews_val.feather')
-df.iloc[max_val:].reset_index().to_feather('processed/bgg-reviews_val.feather')
+df.iloc[max_val:].reset_index().to_feather('processed/bgg-reviews_test.feather')
 print ("Done")
