@@ -16,7 +16,7 @@ def split_file(file_name, target_lib, lines=100_000):
 
     df_from = 0
     while True:
-        ref_num = df_from + 100_000
+        ref_num = df_from + lines
         df_to = max_loc_per_user[ max_loc_per_user >= ref_num].min()
 
         if df_to == np.nan:
