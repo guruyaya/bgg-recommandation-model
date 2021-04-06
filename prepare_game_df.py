@@ -111,52 +111,18 @@ class DescTokeniser(BaseEstimator, TransformerMixin):
         self.max_features = max_features
         self.min_df = min_df
         self.max_df = max_df
-        self.stemming = PorterStemmer()
-
-    @staticmethod
-    def identify_tokens(row):
-        review = row['description']
-        tokens = nltk.word_tokenize(review)
-        
-        # taken only words (not punctuation)
-        token_words = [w for w in tokens if w.isalpha()]
-        return token_words
-
-    def stem_list(self, row):
-        my_list = row['description_stem']
-        stemmed_list = [self.stemming.stem(word) for word in my_list]
-        return (stemmed_list)
-
-    @staticmethod
-    def rejoin_words(row):
-        my_list = row['stemmed_words']
-        joined_words = ( " ".join(my_list))
-        return joined_words
-
-    def preprocess_desc(self, X):
-        df = X.copy()[['description']]
-        df['description'] = df['description'].fillna('')
-        df['description_stem'] = df.apply(self.identify_tokens, axis=1)
-        df['stemmed_words'] = df.apply(self.stem_list, axis=1)
-        df['processed'] = df.apply(self.rejoin_words, axis=1)
-        return df
     
     def fit(self, X, y=None):
-        print ("Desc Tokenizer fit")
-        df = self.preprocess_desc(X)
         self.vectorizer_.fit(df['processed'])
         return self
 
     def transform(self, X):
-        print ("Desc Tokenizer transform")
-        df = self.preprocess_desc(X)
         return self.vectorizer_.transform(df['processed']).toarray()
 
     def fit_transform(self, X, y=None):
         self.vectorizer_ = TfidfVectorizer(min_df=self.min_df,max_df=self.max_df,
             max_features=self.max_features,stop_words=stopwords.words("english"))
-        df = self.preprocess_desc(X)
-        return self.vectorizer_.fit_transform(df['processed']).toarray()
+        return self.vectorizer_.fit_transform(X['processed']).toarray()
 
     def get_feature_names(self):
         return self.vectorizer_.get_feature_names()
@@ -228,7 +194,7 @@ def main(filename):
     nltk.download('punkt')
     nltk.download('stopwords')
 
-    df = pd.read_csv(filename)
+    df = pd.read_feather(filename)
 
     years = (-10000, 1900, 1980, 1990, 2000, 2010, 2015, 21000)
 
