@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import sys
 
-def split_file(file_name, target_lib, lines=100_000):
+def split_file(file_name, target_lib, lines=200_000):
     print ("Starting")
     user_df = pd.read_feather(file_name)
     user_df = user_df[ ~user_df['user'].isna() ]
@@ -26,11 +26,13 @@ def split_file(file_name, target_lib, lines=100_000):
 
         if len(save_df) == 0:
             break
-
+        
+        if type(df_to) == float:
+            df_to = int(save_df.index.max()) + 1
         print (f"Saving from {df_from} to {df_to}")
         print ("starting user: {}, ending user: {}".format(save_df.iloc[0].user, save_df.iloc[-1].user))
         r = save_df.reset_index(drop=True)
-        r.to_feather(f'{target_lib}/reviews_from_{df_from}_to_{df_to}.feather')
+        r.to_feather(f'{target_lib}/reviews_from_{df_from:08d}_to_{df_to:08d}.feather')
         df_from = df_to
     print ("Done")
 
@@ -38,6 +40,6 @@ if __name__ == '__main__':
     print ("Train")
     split_file('processed/bgg-reviews_train.feather','processed/train')
     print ("Val")
-    split_file('processed/bgg-reviews_val.feather','processed/val', 300_000)
+    split_file('processed/bgg-reviews_val.feather','processed/val', 500_000)
     print ("Test")
-    split_file('processed/bgg-reviews_test.feather','processed/test', 300_000)
+    split_file('processed/bgg-reviews_test.feather','processed/test', 500_000)
