@@ -22,24 +22,26 @@ def split_file(file_name, target_lib, lines=200_000):
         if df_to == np.nan:
             save_df = user_df.loc[df_from:]
         else:
-            save_df = user_df.loc[df_from:(df_to + 1)]
+            save_df = user_df.loc[df_from:df_to]
 
         if len(save_df) == 0:
             break
         
-        if type(df_to) == float:
-            df_to = int(save_df.index.max()) + 1
         print (f"Saving from {df_from} to {df_to}")
         print ("starting user: {}, ending user: {}".format(save_df.iloc[0].user, save_df.iloc[-1].user))
         r = save_df.reset_index(drop=True)
-        r.to_feather(f'{target_lib}/reviews_from_{df_from:08d}_to_{df_to:08d}.feather')
-        df_from = df_to
+        try:
+            r.to_feather(f'{target_lib}/reviews_from_{df_from:08d}_to_{df_to:08d}.feather')
+        except ValueError:
+            max_df = int(save_df.index.max())
+            r.to_feather(f'{target_lib}/reviews_from_{df_from:08d}_to_{max_df:08d}.feather')
+        df_from = df_to + 1
     print ("Done")
 
 if __name__ == '__main__':
     print ("Train")
-    split_file('processed/bgg-reviews_train.feather','processed/train')
+    split_file('processed/bgg-reviews_train.feather','processed/train', 10_000)
     print ("Val")
-    split_file('processed/bgg-reviews_val.feather','processed/val', 500_000)
+    split_file('processed/bgg-reviews_val.feather','processed/val', 50_000)
     print ("Test")
-    split_file('processed/bgg-reviews_test.feather','processed/test', 500_000)
+    split_file('processed/bgg-reviews_test.feather','processed/test', 50_000)
