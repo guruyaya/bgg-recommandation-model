@@ -45,9 +45,9 @@ def iteration (i, model):
     loss = validate(model)
     if loss < best_model_loss:
         best_model = model
-        best_model.save_model('model/model_data.json')
+        best_model.save_model('models/model_data.json')
 
-    loss_history.to_csv('loss_history.csv')
+    loss_history.to_csv('models/loss_history.csv')
 
     print('MSE itr@{}: {}'.format(i, loss))
     loss_history = loss_history.append([{'iter':i, 'filenum': i % batch_size, 'batch': i // batch_size, 'MSE': loss}])
@@ -71,8 +71,10 @@ if __name__ == '__main__':
         iter_start_time = int(time.time())
         is_done, model = iteration(i, model)
         total_time = int(time.time()) - start_time
-        print ("Iter {} took {} hours, {} minutes and {} seconds".format(
-            i, total_time // 3600, total_time % 3600 // 60, total_time % 60
+        iter_time = int(time.time()) - iter_start_time
+        print ("Iter {} took {} hours, {} minutes and {} seconds ({}:{} passed)".format(
+            i, iter_time // 3600, iter_time % 3600 // 60, iter_time % 60,
+            total_time // 3600, total_time % 3600 // 60
         ))
         if is_done:
             break
