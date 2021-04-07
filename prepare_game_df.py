@@ -113,11 +113,11 @@ class DescTokeniser(BaseEstimator, TransformerMixin):
         self.max_df = max_df
     
     def fit(self, X, y=None):
-        self.vectorizer_.fit(df['processed'])
+        self.vectorizer_.fit(X['processed'])
         return self
 
     def transform(self, X):
-        return self.vectorizer_.transform(df['processed']).toarray()
+        return self.vectorizer_.transform(X['processed']).toarray()
 
     def fit_transform(self, X, y=None):
         self.vectorizer_ = TfidfVectorizer(min_df=self.min_df,max_df=self.max_df,
