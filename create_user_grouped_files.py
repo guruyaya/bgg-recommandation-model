@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import sys
+import argh
 
 def split_file(file_name, target_lib, lines=200_000):
     print ("Starting")
@@ -38,10 +39,13 @@ def split_file(file_name, target_lib, lines=200_000):
         df_from = df_to + 1
     print ("Done")
 
-if __name__ == '__main__':
+def split_files(train_len, val_len, test_len):
     print ("Train")
-    split_file('processed/bgg-reviews_train.feather','processed/train', 10_000)
+    split_file('processed/bgg-reviews_train.feather','processed/train', int(train_len))
     print ("Val")
-    split_file('processed/bgg-reviews_val.feather','processed/val', 50_000)
+    split_file('processed/bgg-reviews_val.feather','processed/val', int(val_len))
     print ("Test")
-    split_file('processed/bgg-reviews_test.feather','processed/test', 50_000)
+    split_file('processed/bgg-reviews_test.feather','processed/test', int(test_len))
+
+if __name__ == '__main__':
+    argh.dispatch_command(split_files)
