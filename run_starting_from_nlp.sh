@@ -1,4 +1,8 @@
 #!/bin/bash
+rm -rf models.bak
+mv models models.bak
+mkdir models
+
 mv processed/nlp_game_details.feather .
 find processed/ -type f -exec rm {} \;
 mv nlp_game_details.feather processed/
