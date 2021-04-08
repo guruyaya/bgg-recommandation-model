@@ -13,3 +13,5 @@ python create_user_grouped_files.py 200000 500000 500000
 python prepare_comments.py
 
 python xdg_inc.py processed
+
+./pack_model.sh
