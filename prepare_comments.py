@@ -44,7 +44,7 @@ class GetColsSumGroupByCol(BaseEstimator, TransformerMixin):
         self.cols_data_ = pd.DataFrame([], columns=self.sum_cols)
 
     def fit(self, X, y=None):
-        cols_data_ = X.groupby(X[self.group_col])[self.sum_cols].sum()
+        cols_data_ = X.groupby(X[self.group_col])[self.sum_cols].sum().fillna(0)
         self.cols_data_ = self.cols_data_.append(cols_data_)
         return self
 
@@ -125,9 +125,9 @@ class PassthroughTransformer(BaseEstimator, TransformerMixin):
     def get_feature_names(self):
         return self.cols
 
-def get_pipline():
+def get_pipeline(games_table_filename):
     print ("Loading game data")
-    df_games = pd.read_feather('processed/encoded_games_detailed_info.fethear')
+    df_games = pd.read_feather(games_table_filename)
     df_games = df_games.set_index('id')
 
     sum_and_means_cols = [a for a in df_games.columns]
@@ -187,7 +187,7 @@ def loop(pipeline, df_type, is_train):
     
 
 def main():
-    pipeline = get_pipline()
+    pipeline = get_pipeline('processed/encoded_games_detailed_info.fethear')
     start_time = time.time()
     print ("Training")
     loop(pipeline, 'train', True)
