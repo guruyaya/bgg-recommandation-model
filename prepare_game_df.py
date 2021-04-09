@@ -14,6 +14,7 @@ import numpy as np
 import pickle
 import sys
 import argh
+import yaml
 
 # preparing nltk downloads
 
@@ -194,6 +195,10 @@ def main(filename):
     nltk.download('punkt')
     nltk.download('stopwords')
 
+    # loading config from config file
+    with open("config.yml", "r") as ymlfile:
+        cfg = yaml.safe_load(ymlfile)['prepare_game_df']
+
     df = pd.read_feather(filename)
 
     years = (-10000, 1900, 1980, 1990, 2000, 2010, 2015, 21000)
@@ -209,15 +214,16 @@ def main(filename):
             first_group_format='less_than_{to:.2f}', last_group_format='more_than_{from:.2f}', group_name_margin=0.01, 
             ranges_format='{from:.2f}-{to:.2f}')),
         ('players', PlayerNumAnalyzer()),
-        ('desc_nlp', DescTokeniser(max_features=200)),
-        ('category', Cat2BOW('boardgamecategory', min_df=0.01)),
-        ('mechanic', Cat2BOW('boardgamemechanic', min_df=0.01)),
+        ('desc_nlp', DescTokeniser(max_features=cfg['desc_nlp__max_features'])),
+        ('category', Cat2BOW('boardgamecategory', min_df=cfg['category__min_df'])),
+        ('mechanic', Cat2BOW('boardgamemechanic', min_df=cfg['mechanic__min_df'])),
     ])
 
     new_df = pd.DataFrame(final_df.fit_transform(df), 
                     columns=final_df.get_feature_names())
     print(new_df.shape)
 
+    # the Passthrogh params of the first group are added with no __ at the start
     replacers = dict( [(name, name.replace('__','')) for name in new_df.columns if name.startswith('__')] )
     new_df.rename(columns=replacers, inplace=True)
 

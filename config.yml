@@ -1,0 +1,4 @@
+prepare_game_df:
+   desc_nlp__max_features: 100
+   category__min_df: 0.05
+   mechanic__min_df: 0.05
