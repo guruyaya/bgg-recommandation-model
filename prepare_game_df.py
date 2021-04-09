@@ -209,9 +209,9 @@ def main(filename):
             first_group_format='less_than_{to:.2f}', last_group_format='more_than_{from:.2f}', group_name_margin=0.01, 
             ranges_format='{from:.2f}-{to:.2f}')),
         ('players', PlayerNumAnalyzer()),
-        ('desc_nlp', DescTokeniser(max_features=100)),
-        ('category', Cat2BOW('boardgamecategory', min_df=0.05)),
-        ('mechanic', Cat2BOW('boardgamemechanic', min_df=0.05)),
+        ('desc_nlp', DescTokeniser(max_features=200)),
+        ('category', Cat2BOW('boardgamecategory', min_df=0.01)),
+        ('mechanic', Cat2BOW('boardgamemechanic', min_df=0.01)),
     ])
 
     new_df = pd.DataFrame(final_df.fit_transform(df), 

@@ -16,15 +16,15 @@ y_pr = np.array([])
 y_true = np.array([])
 importance = np.array([])
 
-val_files = glob.glob('processed/val/ready/*.feather')
-for val_file in val_files:
-    print (val_file)
-    X_val = pd.read_feather(val_file)
-    y_true = np.concatenate([y_true, X_val['rating'].to_numpy()])
-    X_val = X_val.drop('rating', axis=1)
-    importance = np.concatenate([importance, np.log( X_val['user_reviews__count'] + 0.001 )])
+test_files = glob.glob('processed/test/ready/*.feather')
+for test_file in test_files:
+    print (test_file)
+    X_test = pd.read_feather(test_file)
+    y_true = np.concatenate([y_true, X_test['rating'].to_numpy()])
+    X_test = X_test.drop('rating', axis=1)
+    importance = np.concatenate([importance, np.log( X_test['user_reviews__count'] + 0.001 )])
 
-    y_pr = np.concatenate([y_pr, model.predict(xgb.DMatrix(X_val))])
+    y_pr = np.concatenate([y_pr, model.predict(xgb.DMatrix(X_test))])
 
 loss = MSE(y_true, y_pr, squared=False, sample_weight=importance)
 
