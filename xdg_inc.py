@@ -19,30 +19,55 @@ class ModelTrainer:
         self.compare_last = compare_last
 
         self.model = None
-        self.loss_history = pd.DataFrame([],columns=['iter', 'filenum', 'batch', 'MSE'])
+        self.loss_history = pd.DataFrame([],columns=['iter', 'filenum', 'batch', 
+            'MSE', 'MSE_no_importance', 'MSE_no_reviews', 'MSE_1_review', 'MSE_over_2_reviews', 'MSE_over_5_reviews', 'MSE_over_10_reviews', 'MSE_over_20_reviews'])
         self.is_done = False
         self.best_model = None
         self.best_model_loss = 999999
 
-    def validate(self):
+    def calc_importance(self, X):
+        return np.log( (X['user_reviews__count']).apply(lambda n: max(n, 5)) + 1 );
+
+    def validate(self, iternum, filenum, batchnum):
         y_pr = np.array([])
         y_true = np.array([])
         importance = np.array([])
+        review_count = np.array([])
 
         for val_file in val_files:
             X_val = pd.read_feather(val_file)
             y_true = np.concatenate([y_true, X_val['rating'].to_numpy()])
             X_val = X_val.drop('rating', axis=1)
-            importance = np.concatenate([importance, 
-                np.log( X_val['user_reviews__count'] + 0.001 )])
+            importance = np.concatenate([importance, self.calc_importance(X_val)])
+            review_count = np.concatenate([ review_count, X_val['user_reviews__count'] ])
 
             y_pr = np.concatenate([y_pr, self.model.predict(xgb.DMatrix(X_val))])
-        return MSE(y_true, y_pr, squared=False, sample_weight=importance)
+        out = pd.Series({
+            'iter': iternum, 'filenum': filenum, 'batch': batchnum, 
+            'MSE': MSE(y_true, y_pr, squared=False, sample_weight=importance), 
+            'MSE_no_importance': MSE(y_true, y_pr, squared=False)
+        })
+
+        stats_list = [  ('MSE_no_reviews', review_count == 0), 
+                        ('MSE_1_review', review_count == 1), 
+                        ('MSE_over_2_reviews', review_count >= 2), 
+                        ('MSE_over_5_reviews', review_count >= 5), 
+                        ('MSE_over_10_reviews', review_count >= 10), 
+                        ('MSE_over_20_reviews', review_count >=20) ]
+
+        for stat_name, stat_mask in stats_list:
+            try:
+                out[stat_name] = MSE(y_true[stat_mask], y_pr[stat_mask], squared=False)
+            except:
+                print (f"Failed on {stat_name}")
+                raise
+
+        return out
 
     def train_model (self, train_file):
         X = pd.read_feather(train_file)
         y = X['rating']
-        importance = np.log( X['user_reviews__count'] + 0.001 )
+        importance = self.calc_importance(X)
         X = X.drop('rating', axis=1)
 
         self.model = xgb.train({'learning_rate': 0.07,'process_type': 'default',
@@ -54,22 +79,29 @@ class ModelTrainer:
         train_file = train_files[i % batch_size]
         print (train_file)
         self.train_model(train_file)
-        loss = self.validate()
+        loss = self.validate(i, i % batch_size, i // batch_size)
 
-        if loss < self.best_model_loss:
+        loss_examined = 'MSE_over_5_reviews'
+        if loss[loss_examined] < self.best_model_loss:
             self.best_model = self.model
             self.best_model.save_model('models/model_data.json')
 
-        print('MSE itr@{}: {}'.format(i, loss))
-        self.loss_history = self.loss_history.append([{'iter':i, 'filenum': i % batch_size, 'batch': i // batch_size, 'MSE': loss}])
+        print('MSE itr@{}: total:{:.4f}, no_weights: {:.4f}, no_review: {:.4f}, 1 review: {:.4f}, over 2: {:.4f}, over 5: {:.4f}, over 10: {:.4f}, over 20: {:.4f}'.format(
+            *loss[ ['iter', 'MSE', 'MSE_no_importance', 'MSE_no_reviews', 'MSE_1_review', 'MSE_over_2_reviews', 
+                'MSE_over_5_reviews', 'MSE_over_10_reviews', 'MSE_over_20_reviews'] ].to_list())
+        )
+        self.loss_history = self.loss_history.append(loss.to_dict(), ignore_index=True)
         self.loss_history.to_csv('models/loss_history.csv')
         if len(self.loss_history) > 3:
-            last_losses = ([loss > self.loss_history.iloc[-num]['MSE'] 
-                for num in range(2, 2+self.compare_last, 1)])
-            print (last_losses)
-            if all(last_losses):
-                print ("last {self.compare_last} losses did not go smaller, break")
+            last_losses = (self.loss_history.iloc[-(2+self.compare_last):-2][loss_examined])
+            if all(last_losses < loss[loss_examined]):
+                print (f"last {self.compare_last} losses did not go smaller, break")
                 self.is_done = True
+
+    def train_empty_file(self):
+         train_file = 'processed/train/ready-empty.feather'
+         print ("Traning on empty before starting the real traning")
+         self.train_model(train_file)
 
 iterations = 10
 
@@ -77,6 +109,7 @@ if __name__ == '__main__':
     start_time = int(time.time())
     model_trainer = ModelTrainer()
 
+    model_trainer.train_empty_file()
     for i in range(iterations * batch_size):
         iter_start_time = int(time.time())
         model_trainer.iteration(i)
