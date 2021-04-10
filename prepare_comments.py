@@ -92,17 +92,24 @@ class JoinTableTransformer(BaseEstimator, TransformerMixin):
         self.drop_cols = drop_cols
         self.df_join = df_join
 
-    def fit(self, X, y=None):
+    def generate_out_cols(self, X):
+        if hasattr(self, 'out_cols_'):
+            return
         self.out_cols_ = self.cols
         if self.out_cols_ == None:
             self.out_cols_ = self.df_join.columns
         elif self.out_cols_ == 'All':
             self.out_cols_ = [col for col in X.columns] + [col for col in self.df_join.columns]
+
+    def fit(self, X, y=None):
+        self.generate_out_cols(X)
         return self
 
     def transform(self, X):
+        self.generate_out_cols(X)
         out = X.join(self.df_join, on=X[self.on])
         out = out[self.out_cols_]
+
         if self.drop_cols:
             out = out.drop(self.drop_cols, axis=1)
         return out
@@ -173,12 +180,27 @@ def get_took_time(t):
             t // 3600, t % 3600 // 60, t % 60
         ))
 
+def empty_user(pipeline):
+    """ this function fakes an empty user review of all games, and predicts the average. This helps the model
+        handle a user with no reviews
+    """
+    ratings = pd.DataFrame([])
+    ratings['rating'] = pipeline.steps[0][1].df_join['review__mean']
+    ratings['user'] = ' empty Username '
+    ratings = ratings.reset_index()
+    ratings = ratings.rename({'id': 'game_id'}, axis=1)
+
+    res = pipeline.transform(ratings.drop('rating', axis=1))
+    new_df = pd.DataFrame(res, columns=pipeline.steps[-1][1].get_feature_names())
+    new_df['rating'] = ratings['rating']
+    new_df.astype('float64').to_feather('processed/train/ready-empty.feather')
+
 def loop(pipeline, df_type, is_train):
     loop_start_time = int(time.time())
-    for i, filename in enumerate( glob.glob(f'processed/{df_type}/*.feather') ):
+    for i, filename in enumerate( glob.glob(f'processed/{df_type}/reviews_*.feather') ):
         inner_time = int(time.time())
         basename = filename.split('/')[-1]
-        print (f"Processing file #{i+1}: {basename}...", end =" ")
+        print (f"Processing file #{i+1}: {df_type} - {basename}...", end =" ")
         target_filename = (f'processed/{df_type}/ready/{basename}')
         transform_data(is_train, filename, target_filename, pipeline)
         print ("took " + get_took_time(int(time.time()) - inner_time))
@@ -189,6 +211,8 @@ def loop(pipeline, df_type, is_train):
 def main():
     pipeline = get_pipline()
     start_time = time.time()
+    print ("Traning empty user")
+    empty_user(pipeline)
     print ("Training")
     loop(pipeline, 'train', True)
     print ("Validation")
