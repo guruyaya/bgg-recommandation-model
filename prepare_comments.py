@@ -133,7 +133,6 @@ class PassthroughTransformer(BaseEstimator, TransformerMixin):
         return self.cols
 
 def get_pipeline(games_table_filename):
-    print ("Loading game data")
     df_games = pd.read_feather(games_table_filename)
     df_games = df_games.set_index('id')
 
