@@ -43,7 +43,7 @@ print (loss)
 loss.to_csv('models/sum_results.csv')
 
 test_results = pd.DataFrame(dtype="float64");
-test_results['True'] = y_pr
+test_results['True'] = y_true
 test_results['Predicted'] = y_pr
 test_results['Num Users'] = X_num_rev
 
