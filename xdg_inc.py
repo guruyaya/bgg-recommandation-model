@@ -70,8 +70,8 @@ class ModelTrainer:
         importance = self.calc_importance(X)
         X = X.drop('rating', axis=1)
 
-        self.model = xgb.train({'learning_rate': 0.07,'process_type': 'default',
-                        'refresh_leaf': True, 'reg_alpha': 3}, 
+        self.model = xgb.train({'learning_rate': 0.04,'process_type': 'default',
+                        'refresh_leaf': True, 'reg_alpha': 1}, 
                         dtrain=xgb.DMatrix(X, y, weight=importance), xgb_model = self.model)
         
     def iteration (self, i):
