@@ -163,7 +163,11 @@ class GameRatingTransformer(BaseEstimator, TransformerMixin):
     def extract_data(df):
         out = {}
         out['count'] = df.size
-        out['mean'] = df['rating'].mean()
+        mean = df['rating'].mean()
+        std = df['rating'].std()
+        out['mean_plus_std'] = mean + std
+        out['mean_minus_std'] = mean - std
+
         return pd.Series(out)
 
     def fit(self, X, y=None):
@@ -174,21 +178,22 @@ class GameRatingTransformer(BaseEstimator, TransformerMixin):
         else:
             raise Exception(f'file type {self.file_type} is not supported')
         print ("Games data loaded")
-        self.games_data_ = data_df.groupby('game_id').apply(
-            self.extract_data
-        )
+        self.games_data_ = data_df.groupby('game_id').apply(self.extract_data)
         self.all_games_mean_ = data_df['rating'].mean()
+        self.all_games_std_ = data_df['rating'].std()
         return self
         
     def transform(self, X):
         print ("Game transform")
         out = X[[]].join(self.games_data_)
         out['count'] = out['count'].fillna(0)
-        out['mean'] = out['mean'].fillna(self.all_games_mean_)
+        out['mean_plus_std'] = out['mean_plus_std'].fillna(self.all_games_mean_ + self.all_games_std_)
+        out['mean_minus_std'] = out['mean_minus_std'].fillna(self.all_games_mean_ - self.all_games_std_)
+
         return out
 
     def get_feature_names(self):
-        return ['count','mean',]
+        return ['count','mean_plus_std', 'mean_minus_std']
 
 def main(filename):
     print("Starting Now!\n\n\n")
@@ -206,20 +211,23 @@ def main(filename):
     final_df = FeatureUnion([
         ('', PassthroughTransformer(['id',])),
         ('review', GameRatingTransformer()),
-        ('years', GrpupingEncoder(col='yearpublished', groups=years, 
-            first_group_format='Pre-{to}', last_group_format='Post-{from}')),
-        ('min_age', GrpupingEncoder(col='minage', groups=(0, 3, 10, 12, 18, 100), 
-            first_group_format='none', last_group_format='adults')),
-        ('weight', GrpupingEncoder(col='averageweight', groups=np.arange(0, 5, 0.5), 
-            first_group_format='less_than_{to:.2f}', last_group_format='more_than_{from:.2f}', group_name_margin=0.01, 
-            ranges_format='{from:.2f}-{to:.2f}')),
-        ('players', PlayerNumAnalyzer()),
-        ('desc_nlp', DescTokeniser(max_features=cfg['desc_nlp__max_features'])),
-        ('category', Cat2BOW('boardgamecategory', min_df=cfg['category__min_df'])),
-        ('mechanic', Cat2BOW('boardgamemechanic', min_df=cfg['mechanic__min_df'])),
+       ('years', GrpupingEncoder(col='yearpublished', groups=years, 
+           first_group_format='Pre-{to}', last_group_format='Post-{from}')),
+       ('min_age', GrpupingEncoder(col='minage', groups=(0, 3, 10, 12, 18, 100), 
+           first_group_format='none', last_group_format='adults')),
+       ('weight', GrpupingEncoder(col='averageweight', groups=np.arange(0, 5, 0.5), 
+           first_group_format='less_than_{to:.2f}', last_group_format='more_than_{from:.2f}', group_name_margin=0.01, 
+           ranges_format='{from:.2f}-{to:.2f}')),
+       ('players', PlayerNumAnalyzer()),
+       ('desc_nlp', DescTokeniser(max_features=cfg['desc_nlp__max_features'])),
+       ('category', Cat2BOW('boardgamecategory', min_df=cfg['category__min_df'])),
+       ('mechanic', Cat2BOW('boardgamemechanic', min_df=cfg['mechanic__min_df'])),
     ])
 
-    new_df = pd.DataFrame(final_df.fit_transform(df), 
+    out = final_df.fit_transform(df)
+    print (out)
+    print (final_df.get_feature_names())
+    new_df = pd.DataFrame(out,
                     columns=final_df.get_feature_names())
     print(new_df.shape)
 
