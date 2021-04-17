@@ -17,23 +17,27 @@ class GetSizeByColTransformer(BaseEstimator, TransformerMixin):
         # inititlizing vars
         self.cols_data_size_ = pd.Series([], dtype='int')
         self.cols_data_mean_ = pd.Series([], dtype='float64')
+        self.cols_data_std_ = pd.Series([], dtype='float64')
 
     def fit(self, X, y=None):
         cols_data_size_ = X.groupby(self.group_col).size()
         cols_data_mean_ = y.groupby(X[self.group_col]).mean()
+        cols_data_std_ = y.groupby(X[self.group_col]).std()
 
         self.cols_data_size_ = self.cols_data_size_.append(cols_data_size_)
         self.cols_data_mean_ = self.cols_data_mean_.append(cols_data_mean_)
+        self.cols_data_std_ = self.cols_data_std_.append(cols_data_std_)
         return self
 
     def transform(self, X):
         out = pd.DataFrame()
         out['count'] = X[self.group_col].map(self.cols_data_size_).fillna(0)
-        out['mean'] = X[self.group_col].map(self.cols_data_size_).fillna(-1)
+        out['mean_plus_std'] = X[self.group_col].map(self.cols_data_size_ + self.cols_data_std_).fillna(-1)
+        out['mean_minus_std'] = X[self.group_col].map(self.cols_data_size_ - self.cols_data_std_).fillna(-1)
         return out
 
     def get_feature_names(self):
-        return ['count', 'mean']
+        return ['count', 'mean_plus_std', 'mean_minus_std']
 
 
 class GetColsSumGroupByCol(BaseEstimator, TransformerMixin):
@@ -138,10 +142,11 @@ def get_pipeline(games_table_filename):
 
     sum_and_means_cols = [a for a in df_games.columns]
     sum_and_means_cols.remove('review__count')
-    sum_and_means_cols.remove('review__mean')
+    sum_and_means_cols.remove('review__mean_plus_std')
+    sum_and_means_cols.remove('review__mean_minus_std')
 
     features = FeatureUnion([
-        ('game', PassthroughTransformer(['review__count', 'review__mean'] + sum_and_means_cols)),
+        ('game', PassthroughTransformer(['review__count', 'review__mean_plus_std', 'review__mean_minus_std'] + sum_and_means_cols)),
         ('user_reviews', GetSizeByColTransformer('user')), 
         ('sum', GetColsSumGroupByCol('user', sum_and_means_cols)),
         ('mean', GetColsMeanGroupByCol('user', sum_and_means_cols)),
@@ -184,7 +189,8 @@ def empty_user(pipeline):
         handle a user with no reviews
     """
     ratings = pd.DataFrame([])
-    ratings['rating'] = pipeline.steps[0][1].df_join['review__mean']
+    ratings['rating'] =  (pipeline.steps[0][1].df_join['review__mean_plus_std'] + 
+                        pipeline.steps[0][1].df_join['review__mean_minus_std']) / 2
     ratings['user'] = ' empty Username '
     ratings = ratings.reset_index()
     ratings = ratings.rename({'id': 'game_id'}, axis=1)
