@@ -50,14 +50,18 @@ class Cat2BOW(BaseEstimator, TransformerMixin):
 
 class PassthroughTransformer(BaseEstimator, TransformerMixin):
     """ Passes some of the columns unchanged"""
-    def __init__(self, cols=[]):
+    def __init__(self, cols=[], reset_index=False):
         self.cols = cols
+        self.reset_index = reset_index
 
     def fit(self, X, y=None):
         return self
 
     def transform(self, X):
-        return X[self.cols]
+        out = X.copy()
+        if (self.reset_index):
+            out = out.reset_index()
+        return out[self.cols]
     
     def get_feature_names(self):
         return self.cols
@@ -185,8 +189,8 @@ class GameRatingTransformer(BaseEstimator, TransformerMixin):
         
     def transform(self, X):
         print ("Game transform")
-        out = X[[]].join(self.games_data_)
-        out['count'] = out['count'].fillna(0)
+        out = X[[]].join(self.games_data_) # joins including missing counts
+        out['count'] = out['count']# .fillna(0)
         out['mean_plus_std'] = out['mean_plus_std'].fillna(self.all_games_mean_ + self.all_games_std_)
         out['mean_minus_std'] = out['mean_minus_std'].fillna(self.all_games_mean_ - self.all_games_std_)
 
@@ -205,27 +209,27 @@ def main(filename):
         cfg = yaml.safe_load(ymlfile)['prepare_game_df']
 
     df = pd.read_feather(filename)
+    df = df.set_index('id')
 
     years = (-10000, 1900, 1980, 1990, 2000, 2010, 2015, 21000)
 
     final_df = FeatureUnion([
-        ('', PassthroughTransformer(['id',])),
+        ('', PassthroughTransformer(['id',], reset_index=True)),
         ('review', GameRatingTransformer()),
-       ('years', GrpupingEncoder(col='yearpublished', groups=years, 
+        ('years', GrpupingEncoder(col='yearpublished', groups=years, 
            first_group_format='Pre-{to}', last_group_format='Post-{from}')),
-       ('min_age', GrpupingEncoder(col='minage', groups=(0, 3, 10, 12, 18, 100), 
+        ('min_age', GrpupingEncoder(col='minage', groups=(0, 3, 10, 12, 18, 100), 
            first_group_format='none', last_group_format='adults')),
-       ('weight', GrpupingEncoder(col='averageweight', groups=np.arange(0, 5, 0.5), 
+        ('weight', GrpupingEncoder(col='averageweight', groups=np.arange(0, 5, 0.5), 
            first_group_format='less_than_{to:.2f}', last_group_format='more_than_{from:.2f}', group_name_margin=0.01, 
            ranges_format='{from:.2f}-{to:.2f}')),
-       ('players', PlayerNumAnalyzer()),
-       ('desc_nlp', DescTokeniser(max_features=cfg['desc_nlp__max_features'])),
-       ('category', Cat2BOW('boardgamecategory', min_df=cfg['category__min_df'])),
-       ('mechanic', Cat2BOW('boardgamemechanic', min_df=cfg['mechanic__min_df'])),
+        ('players', PlayerNumAnalyzer()),
+        ('desc_nlp', DescTokeniser(max_features=cfg['desc_nlp__max_features'])),
+        ('category', Cat2BOW('boardgamecategory', min_df=cfg['category__min_df'])),
+        ('mechanic', Cat2BOW('boardgamemechanic', min_df=cfg['mechanic__min_df'])),
     ])
 
     out = final_df.fit_transform(df)
-    print (out)
     print (final_df.get_feature_names())
     new_df = pd.DataFrame(out,
                     columns=final_df.get_feature_names())
