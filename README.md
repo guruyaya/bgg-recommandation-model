@@ -21,4 +21,4 @@ An example of model usage can be followed on this jupyter notebook here:
 
 ### The model in the wild
 I cannot promise anything at this point, but for now you can find an app using this model in this address
-(ttp://bgg.inspect-element.net/)
+(http://bgg.inspect-element.net/)
