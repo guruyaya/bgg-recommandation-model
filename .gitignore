@@ -1,4 +1,6 @@
 processed
 models*
 data
+.vscode
+.ipynb_*
 __pycache__/
