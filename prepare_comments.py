@@ -205,6 +205,7 @@ def loop(pipeline, df_type, is_train):
     for i, filename in enumerate( glob.glob(f'processed/{df_type}/reviews_*.feather') ):
         inner_time = int(time.time())
         basename = filename.split('/')[-1]
+        basename = basename.split('\\')[-1] # handling windows
         print (f"Processing file #{i+1}: {df_type} - {basename}...", end =" ")
         target_filename = (f'processed/{df_type}/ready/{basename}')
         transform_data(is_train, filename, target_filename, pipeline)
