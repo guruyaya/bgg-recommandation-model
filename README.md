@@ -8,7 +8,7 @@ This process is designed to work on linux systems
 1. download the data from kaggle, and storing the CSV files in a folder called data
 2. Create a folder named processed
 3. Create a folder named models
-4. /nlp_preprocess_desc.py data/games_detailed_info.csv
+4. ./nlp_preprocess_desc.py data/games_detailed_info.csv
 5. ./run_starting_from_nlp.sh
 
 This should end up creating a working xgboost model in your models folder
