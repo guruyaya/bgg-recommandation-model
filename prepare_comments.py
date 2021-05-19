@@ -32,8 +32,8 @@ class GetSizeByColTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X):
         out = pd.DataFrame()
         out['count'] = X[self.group_col].map(self.cols_data_size_).fillna(0)
-        out['mean_plus_std'] = X[self.group_col].map(self.cols_data_size_ + self.cols_data_std_).fillna(-1)
-        out['mean_minus_std'] = X[self.group_col].map(self.cols_data_size_ - self.cols_data_std_).fillna(-1)
+        out['mean_plus_std'] = X[self.group_col].map(self.cols_data_mean_ + self.cols_data_std_).fillna(-1)
+        out['mean_minus_std'] = X[self.group_col].map(self.cols_data_mean_ - self.cols_data_std_).fillna(-1)
         return out
 
     def get_feature_names(self):
