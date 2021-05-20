@@ -5,7 +5,6 @@ This file contains the process to handle the full game info
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
-from sklearn.preprocessing import KBinsDiscretizer
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 import nltk
@@ -22,7 +21,7 @@ class Cat2BOW(BaseEstimator, TransformerMixin):
     def __init__(self, col, min_df=0):
         self.col = col
         self.min_df = min_df
-        
+
     def fit(self, X, y=None):
         adjusted_col = self.prepare_for_bow( X[self.col] )
         self.fitted_vectorizer_ = CountVectorizer(min_df=self.min_df).fit(adjusted_col)
